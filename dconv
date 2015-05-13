@@ -1,0 +1,45 @@
+#!/bin/sh
+
+
+fencoding='gbk'
+tencoding='utf8'
+usage_str="
+Directory's text file encoding convertion.\n
+Usage: $(basename $0) <target-dir> [<from-encoding default=gbk>] [<to-encoding default=utf8>]\n
+    \n
+    Convert encoding of all text files under <target-dir> from <from-encoding> to <to-encoding>, recursively, and bankup first.\n
+    Text file determined by following suffix: .cpp/.c/.h/.xml/.txt, you can add your choice simply by edit shell code.
+    "
+
+
+if [ "$#" -lt 1 ]  || [ -z "$1" ] || [ ! -d "$1" ]; then
+    echo ${usage_str}
+    exit 1
+fi
+
+if [ "$#" -ge 2 ]  && [ -n "$2" ]; then
+    fencoding="$2"
+fi
+
+if [ "$#" -ge 3 ]  && [ -n "$3" ]; then
+    tencoding="$3"
+fi
+
+
+target_dir="$(basename $1)"
+bankup_dir="${target_dir}_bak_$(date +%Y%m%d%H%M%S)"
+echo "convert ${target_dir} from ${fencoding} to ${tencoding}..."
+
+echo "bankup ${target_dir} to ${bankup_dir}"
+cp -rf ${target_dir} ${bankup_dir}
+
+
+tree -if --noreport ${target_dir} | egrep '\.cpp$|\.c$|\.h$|\.sh$|\.xml$|\.txt$' | while read fname
+do
+    echo "converting ${fname}..."
+    fname_tmp="${fname}_tmp"
+    mv ${fname} ${fname_tmp}
+    iconv -f ${fencoding} -t ${tencoding} ${fname_tmp} > ${fname}
+    rm -f ${fname_tmp}
+done
+
